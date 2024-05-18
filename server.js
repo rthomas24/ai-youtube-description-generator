@@ -70,8 +70,7 @@ app.post('/gettimestamptranscript', async (req, res) => {
         res.status(200).send({ result })
       })
       .catch(error => {
-        logger.error('Error reading file:', error)
-        res.status(500).send('Internal Server Error')
+        res.status(500).send('Internal Server Error: ' + error)
       })
   } catch (error) {
     console.error('Error:', error)
@@ -88,19 +87,19 @@ app.post('/chatwithytvideo', async (req, res) => {
 
   try {
     //Uncomment this if you want to use openAI instead of Google
-    // const langChainModelOpenAI = new ChatOpenAI({
-    //   openAIApiKey,
-    //   modelName,
-    //   maxTokens: 125,
-    //   temperature: 0.2,
-    // })
-
-    const langChainModelGoogle = new ChatGoogleGenerativeAI({
-      apiKey: googleGeminiApiKey,
-      modelName: 'gemini-pro',
-      maxOutputTokens: 125,
+    const langChainModelOpenAI = new ChatOpenAI({
+      openAIApiKey,
+      modelName,
+      maxTokens: 125,
       temperature: 0.2,
     })
+
+    // const langChainModelGoogle = new ChatGoogleGenerativeAI({
+    //   apiKey: googleGeminiApiKey,
+    //   modelName: 'gemini-pro',
+    //   maxOutputTokens: 125,
+    //   temperature: 0.2,
+    // })
 
     const textSplitter = new RecursiveCharacterTextSplitter({
       chunkSize: 1000,
@@ -155,7 +154,7 @@ app.post('/chatwithytvideo', async (req, res) => {
       // The fourth operation is to generate the question prompt
       questionPrompt,
       // The fifth operation is to use the model to generate the answer
-      langChainModelGoogle,
+      langChainModelOpenAI,
       // The final operation is to parse the output into a string
       new StringOutputParser(),
     ])
@@ -298,40 +297,6 @@ app.post('/custominstructions', async (req, res) => {
       .join('\n')
 
     res.status(200).send(formattedResponse)
-  } catch (error) {
-    console.error('Error:', error)
-    res.status(500).send('An error occurred')
-  }
-})
-
-app.get('/getTranscriptSummary', async (req, res) => {
-  const transcript = req.body.transcript ?? ''
-  const modelName = 'gpt-3.5-turbo-0125'
-
-  try {
-    const langChainModel = new ChatOpenAI({
-      openAIApiKey,
-      modelName,
-      temperature: 0,
-    })
-
-    const textSplitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 1000,
-    })
-    const docs = await textSplitter.createDocuments([transcript])
-
-    const chain = loadSummarizationChain(langChainModel, {
-      type: 'stuff',
-    })
-
-    let transcriptSummary
-    if (!descriptionOptions.fullTranscript) {
-      transcriptSummary = await chain.call({
-        input_documents: docs,
-      })
-    }
-
-    res.status(200).send({ summary: transcriptSummary })
   } catch (error) {
     console.error('Error:', error)
     res.status(500).send('An error occurred')
